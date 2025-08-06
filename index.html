@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ibiza 2.0: Configuration Hub</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Font (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+    <!-- React & ReactDOM from CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Lucide Icons from CDN -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Babel to transpile JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .animate-fade-in { 
+            animation: fadeIn 0.5s ease-in-out; 
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Destructure React hooks from the global React object
+        const { useState } = React;
+        
+        // Create icon components from Lucide global object
+        const createIconComponent = (iconName) => {
+            return (props) => {
+                const IconComponent = lucide[iconName];
+                return IconComponent ? React.createElement(IconComponent, props) : null;
+            };
+        };
+
+        // Create icon components
+        const Plus = createIconComponent('Plus');
+        const Trash2 = createIconComponent('Trash2');
+        const GripVertical = createIconComponent('GripVertical');
+        const Save = createIconComponent('Save');
+        const History = createIconComponent('History');
+        const SlidersHorizontal = createIconComponent('SlidersHorizontal');
+        const FileText = createIconComponent('FileText');
+        const LayoutDashboard = createIconComponent('LayoutDashboard');
+        const CornerDownRight = createIconComponent('CornerDownRight');
+        const Search = createIconComponent('Search');
+        const Edit = createIconComponent('Edit');
+        const Eye = createIconComponent('Eye');
+        const Settings = createIconComponent('Settings');
+        const Play = createIconComponent('Play');
+        const ShieldCheck = createIconComponent('ShieldCheck');
+
+        // --- Enhanced Mock Data ---
+        const mockRateCards = [
+          { id: 1, name: 'Project Key - GTA Flat Rates', version: '1.2', status: 'Active', lastModified: '2025-07-26', modifiedBy: 'Sarthak A.' },
+          { id: 2, name: 'Standard Non-Large (Legacy)', version: '3.5', status: 'Active', lastModified: '2024-11-10', modifiedBy: 'Ashish P.' },
+          { id: 3, name: 'Grocery Fixed Tier', version: '1.0', status: 'Active', lastModified: '2025-01-15', modifiedBy: 'Tushar J.' },
+          { id: 4, name: 'Myntra Agreement Q3-2025', version: '2.1', status: 'Draft', lastModified: '2025-07-28', modifiedBy: 'Saransh A.' },
+          { id: 5, name: '3PL Partner Rates', version: '4.0', status: 'Archived', lastModified: '2023-12-20', modifiedBy: 'Mayukh R.' },
+        ];
+
+        const mockDimensionsData = [
+            { id: 1, name: 'Service Type', type: 'Select', values: 'Non-Large, Large SPS, ...' },
+            { id: 2, name: 'Journey Type', type: 'Select', values: 'Forward, RTO, RVP' },
+            { id: 3, name: 'Journey Leg', type: 'Select', values: 'FM, MMLM, Full' },
+            { id: 4, name: 'GTA Flag', type: 'Boolean (Select)', values: 'True, False' },
+            { id: 5, name: 'Client', type: 'Select', values: 'Flipkart, Myntra' },
+            { id: 6, name: 'Payment Type', type: 'Select', values: 'COD, Prepaid, POS' },
+            { id: 7, name: 'Weight (kg)', type: 'Number', values: 'N/A' },
+            { id: 8, name: 'Amount to Collect', type: 'Number', values: 'N/A' },
+        ];
+
+        const mockAuditLogs = [
+            { id: 1, timestamp: '2025-07-31 10:15:23', user: 'Sarthak A.', action: 'UPDATE', entity: 'Rate Card', entityName: 'Project Key - GTA Flat Rates', details: 'Changed status from Draft to Active.' },
+            { id: 2, timestamp: '2025-07-30 16:45:01', user: 'Sarthak A.', action: 'CREATE', entity: 'Rule', entityName: 'Project Key - GTA Flat Rates', details: 'Added rule for RVP MMLM charge.' },
+            { id: 3, timestamp: '2025-07-29 09:05:55', user: 'Tushar J.', action: 'CREATE', entity: 'Dimension', entityName: 'Client', details: 'Added new dimension "Client" with type Select.' },
+            { id: 4, timestamp: '2025-07-28 14:22:18', user: 'Saransh A.', action: 'CREATE', entity: 'Rate Card', entityName: 'Myntra Agreement Q3-2025', details: 'Created new rate card in Draft status.' },
+            { id: 5, timestamp: '2025-07-26 11:00:00', user: 'Ashish P.', action: 'UPDATE', entity: 'Rule', entityName: 'Standard Non-Large (Legacy)', details: 'Modified slab rate for Zone D.' },
+        ];
+
+
+        const mockOperators = {
+            Select: ['is', 'is not', 'is one of'],
+            Number: ['=', '!=', '>', '>=', '<', '<='],
+        };
+
+        const mockValueOptions = {
+          'Service Type': ['Non-Large', 'Large SPS', 'Large MPS', 'Grocery', '3PL', 'Hyperlocal', 'Myntra'],
+          'Journey Type': ['Forward', 'RTO', 'RVP'],
+          'Journey Leg': ['FM', 'MMLM', 'Full'],
+          'GTA Flag': ['True', 'False'],
+          'Client': ['Flipkart', 'Myntra'],
+          'Payment Type': ['COD', 'Prepaid', 'POS'],
+        };
+
+        const mockActions = ['Calculate Flat Rate', 'Calculate Slab Rate', 'Apply Discount Percentage', 'Add Surcharge', 'Return Zero Charge'];
+
+        // --- Helper Functions & Initial State ---
+        const createNewCondition = () => ({ id: `${Date.now()}-${Math.random()}`, dimension: '', operator: '', value: '' });
+        const createNewGroup = () => ({ id: `${Date.now()}-${Math.random()}`, type: 'group', operator: 'AND', conditions: [createNewCondition()], groups: [] });
+        const createNewAction = () => ({ id: `${Date.now()}-${Math.random()}`, type: '', params: {} });
+        const initialRuleState = {
+          id: 1,
+          priority: 10,
+          isFinal: false,
+          conditionGroup: {
+            id: 'root',
+            type: 'group',
+            operator: 'AND',
+            conditions: [
+              { id: Date.now(), dimension: 'Journey Type', operator: 'is', value: 'Forward' },
+              { id: Date.now()+1, dimension: 'Journey Leg', operator: 'is', value: 'FM' }
+            ],
+            groups: []
+          },
+          actionPipeline: [{ id: Date.now()+2, type: 'Calculate Flat Rate', params: { rate: 3.75 } }]
+        };
+
+        const sampleEventData = JSON.stringify({
+            "eventId": "evt_12345",
+            "timestamp": "2025-08-01T10:00:00Z",
+            "shipmentId": "SHP67890",
+            "context": {
+                "Service Type": "Non-Large",
+                "Journey Type": "Forward",
+                "Journey Leg": "FM",
+                "GTA Flag": "True",
+                "Client": "Flipkart",
+                "Payment Type": "Prepaid",
+                "Weight (kg)": 2.3,
+                "Amount to Collect": 0
+            }
+        }, null, 2);
+
+        // --- Components ---
+
+        const Sidebar = ({ activeView, setActiveView }) => {
+          const navItems = [
+            { icon: FileText, label: 'Rate Cards', view: 'rate_cards' },
+            { icon: SlidersHorizontal, label: 'Rules Engine', view: 'rules' },
+            { icon: LayoutDashboard, label: 'Dimensions', view: 'dimensions' },
+            { icon: ShieldCheck, label: 'Simulations', view: 'simulations' },
+            { icon: History, label: 'Audit Logs', view: 'audits' },
+          ];
+          return (
+            <div className="w-64 bg-gray-800 text-white p-5 flex flex-col shrink-0">
+              <div className="text-2xl font-bold mb-10">Ibiza 2.0</div>
+              <nav className="flex flex-col space-y-2">
+                {navItems.map(item => (
+                  <a key={item.label} href="#" onClick={(e) => {
+                      e.preventDefault();
+                      setActiveView(item.view);
+                    }} 
+                     className={`flex items-center p-2 rounded-lg transition-colors ${activeView === item.view ? 'bg-blue-600 text-white' : 'hover:bg-gray-700'}`}>
+                    <item.icon className="w-5 h-5 mr-3" />
+                    <span>{item.label}</span>
+                  </a>
+                ))}
+              </nav>
+              <div className="mt-auto text-xs text-gray-400">Version 2.0.0-beta</div>
+            </div>
+          );
+        };
+
+        const Header = ({ title, onAction, actionLabel, actionIcon: ActionIcon = Plus }) => (
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-800">{title}</h1>
+            {onAction && (
+              <button onClick={onAction} className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition-colors flex items-center">
+                <ActionIcon className="w-5 h-5 mr-2" />
+                {actionLabel}
+              </button>
+            )}
+          </div>
+        );
+
+        // --- View Components ---
+
+        const RateCardsView = ({ onEdit, onCreate }) => (
+            <React.Fragment>
+                <Header title="Rate Cards Management" actionLabel="Create New Rate Card" onAction={onCreate} />
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <table className="w-full text-left">
+                        <thead><tr className="border-b text-gray-500"><th className="p-4">Rate Card Name</th><th className="p-4">Version</th><th className="p-4">Status</th><th className="p-4">Last Modified By</th><th className="p-4">Actions</th></tr></thead>
+                        <tbody>
+                            {mockRateCards.map(card => (
+                                <tr key={card.id} className="border-b hover:bg-gray-50">
+                                    <td className="p-4 font-medium text-gray-800">{card.name}</td><td className="p-4 text-gray-600">{card.version}</td>
+                                    <td className="p-4"><span className={`px-2 py-1 rounded-full text-xs font-semibold ${card.status === 'Active' ? 'bg-green-100 text-green-800' : card.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{card.status}</span></td>
+                                    <td className="p-4 text-gray-600">{card.modifiedBy}</td><td className="p-4"><button onClick={() => onEdit(card)} className="text-blue-600 hover:underline">Edit</button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </React.Fragment>
+        );
+
+        const DimensionsView = () => (
+            <React.Fragment>
+                <Header title="Manage Dimensions" actionLabel="Add New Dimension" onAction={() => alert('Add New Dimension form would appear here.')} />
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <p className="text-gray-600 mb-4">Dimensions are the attributes used by the Rules Engine to make decisions. Manage them here.</p>
+                    <table className="w-full text-left">
+                        <thead><tr className="border-b text-gray-500"><th className="p-4">Dimension Name</th><th className="p-4">Data Type</th><th className="p-4">Allowed Values (Sample)</th><th className="p-4">Actions</th></tr></thead>
+                        <tbody>
+                            {mockDimensionsData.map(dim => (
+                                <tr key={dim.id} className="border-b hover:bg-gray-50">
+                                    <td className="p-4 font-medium text-gray-800">{dim.name}</td><td className="p-4 text-gray-600">{dim.type}</td><td className="p-4 text-gray-600 text-sm italic">{dim.values}</td><td className="p-4"><button className="text-blue-600 hover:underline">Edit</button></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </React.Fragment>
+        );
+
+        const AuditLogsView = () => (
+            <React.Fragment>
+                <Header title="Audit Logs" />
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex space-x-4 mb-4 pb-4 border-b">
+                        <input type="text" placeholder="Search logs..." className="p-2 border rounded-lg w-1/3" />
+                        <input type="date" className="p-2 border rounded-lg" /><select className="p-2 border rounded-lg"><option>Filter by User</option><option>Sarthak A.</option><option>Ashish P.</option></select><select className="p-2 border rounded-lg"><option>Filter by Action</option><option>CREATE</option><option>UPDATE</option></select>
+                    </div>
+                    <table className="w-full text-left">
+                        <thead><tr className="border-b text-gray-500"><th className="p-4">Timestamp</th><th className="p-4">User</th><th className="p-4">Action</th><th className="p-4">Entity</th><th className="p-4">Details</th></tr></thead>
+                        <tbody>
+                            {mockAuditLogs.map(log => (
+                                <tr key={log.id} className="border-b hover:bg-gray-50">
+                                    <td className="p-4 text-gray-600 text-sm whitespace-nowrap">{log.timestamp}</td><td className="p-4 font-medium text-gray-800">{log.user}</td><td className="p-4"><span className={`font-semibold ${log.action === 'CREATE' ? 'text-green-600' : 'text-blue-600'}`}>{log.action}</span></td><td className="p-4 text-gray-600">{log.entityName}</td><td className="p-4 text-gray-600">{log.details}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </React.Fragment>
+        );
+
+        const SimulationsView = () => {
+            const [eventData, setEventData] = useState(sampleEventData);
+            const [simResult, setSimResult] = useState(null);
+            const runSimulation = () => {
+                setSimResult({
+                    finalCharge: 3.75,
+                    trace: [
+                        "Simulation Started. Event Context:",
+                        JSON.stringify(JSON.parse(eventData).context, null, 2),
+                        "Selected Rate Card: Project Key - GTA Flat Rates",
+                        "Evaluating Rule 1 (Priority 10)... MATCHED.",
+                        "  - Condition: Journey Type is Forward -> OK",
+                        "  - Condition: Journey Leg is FM -> OK",
+                        "Executing Action Pipeline for Rule 1:",
+                        "  - Action 1: Calculate Flat Rate with param { rate: 3.75 }",
+                        "  - Intermediate Charge: 3.75",
+                        "Rule 1 is not final. Continuing evaluation.",
+                        "Evaluating Rule 2 (Priority 20)... SKIPPED (Condition: Journey Type is RTO -> FAIL)",
+                        "Simulation Finished. Final Charge: 3.75"
+                    ]
+                });
+            };
+
+            return (
+                <React.Fragment>
+                    <Header title="Simulation Environment" actionLabel="Run Simulation" onAction={runSimulation} actionIcon={Play} />
+                    <div className="grid grid-cols-2 gap-8">
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <h2 className="text-xl font-bold mb-4">Configuration</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="font-medium text-gray-700">Rate Card to Test</label>
+                                    <select className="w-full p-2 border rounded-lg mt-1 bg-white"><option>Project Key - GTA Flat Rates</option><option>Standard Non-Large (Legacy)</option></select>
+                                </div>
+                                <div>
+                                    <label className="font-medium text-gray-700">Sample Event Data (JSON)</label>
+                                    <textarea value={eventData} onChange={e => setEventData(e.target.value)} className="w-full p-2 border rounded-lg mt-1 h-80 font-mono text-sm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <h2 className="text-xl font-bold mb-4">Result</h2>
+                            {simResult ? (
+                                <div>
+                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                                        <p className="text-sm font-medium text-blue-800">Final Calculated Charge</p>
+                                        <p className="text-3xl font-bold text-blue-900">₹{simResult.finalCharge.toFixed(2)}</p>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold mb-2">Execution Trace:</h3>
+                                        <pre className="bg-gray-800 text-white p-4 rounded-lg text-xs overflow-x-auto h-80">{simResult.trace.join('\n')}</pre>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center text-gray-500 py-20">
+                                    <p>Run a simulation to see the results.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </React.Fragment>
+            );
+        };
+
+        const ValueInput = ({ condition, onChange }) => {
+            const dimension = mockDimensionsData.find(d => d.name === condition.dimension);
+            if (!dimension) return <input type="text" placeholder="Value" value={condition.value} onChange={e => onChange('value', e.target.value)} className="p-2 border rounded-lg w-1/3 bg-gray-100" disabled />;
+            if (dimension.type === 'Select') return <select value={condition.value} onChange={e => onChange('value', e.target.value)} className="p-2 border rounded-lg bg-white w-1/3"><option value="">Select Value</option>{(mockValueOptions[dimension.name] || []).map(v => <option key={v} value={v}>{v}</option>)}</select>;
+            if (dimension.type === 'Number') return <input type="number" placeholder="Value" value={condition.value} onChange={e => onChange('value', e.target.value)} className="p-2 border rounded-lg w-1/3" />;
+            return <input type="text" placeholder="Value" value={condition.value} onChange={e => onChange('value', e.target.value)} className="p-2 border rounded-lg w-1/3" />;
+        };
+
+        const ConditionRow = ({ condition, onUpdate, onRemove }) => {
+            const dimensionType = mockDimensionsData.find(d => d.name === condition.dimension)?.type || 'Select';
+            return (
+                <div className="flex items-center space-x-2">
+                    <select value={condition.dimension} onChange={e => onUpdate('dimension', e.target.value)} className="p-2 border rounded-lg bg-white w-1/3"><option value="">Select Dimension</option>{mockDimensionsData.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}</select>
+                    <select value={condition.operator} onChange={e => onUpdate('operator', e.target.value)} className="p-2 border rounded-lg bg-white w-1/4"><option value="">Select Operator</option>{(mockOperators[dimensionType] || []).map(o => <option key={o} value={o}>{o}</option>)}</select>
+                    <ValueInput condition={condition} onChange={(field, value) => onUpdate(field, value)} /><button onClick={onRemove} className="text-gray-400 hover:text-red-500"><Trash2 size={18} /></button>
+                </div>
+            );
+        };
+
+        const ConditionGroup = ({ group, onUpdate }) => (
+            <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 ml-6 relative">
+                <div className="absolute -left-3 top-1/2 -translate-y-1/2"><CornerDownRight size={20} className="text-gray-400" /></div>
+                <div className="flex items-center mb-3">
+                    <div className="flex items-center space-x-2"><label className="text-sm font-semibold text-gray-600">Operator:</label><div className="bg-white border rounded-lg p-1 flex space-x-1"><button onClick={() => onUpdate('operator', 'AND')} className={`px-3 py-1 text-sm rounded ${group.operator === 'AND' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600'}`}>AND</button><button onClick={() => onUpdate('operator', 'OR')} className={`px-3 py-1 text-sm rounded ${group.operator === 'OR' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600'}`}>OR</button></div></div>
+                </div>
+                <div className="space-y-2">
+                    {group.conditions.map((cond, i) => <ConditionRow key={cond.id} condition={cond} onUpdate={(field, value) => onUpdate('updateCondition', { index: i, field, value })} onRemove={() => onUpdate('removeCondition', i)} />)}
+                    {group.groups.map((subGroup, i) => <ConditionGroup key={subGroup.id} group={subGroup} onUpdate={(action, payload) => onUpdate('updateGroup', { index: i, action, payload })} />)}
+                </div>
+                <div className="mt-3 flex space-x-3">
+                    <button onClick={() => onUpdate('addCondition')} className="text-blue-600 text-sm font-semibold hover:underline">+ Add Condition</button><button onClick={() => onUpdate('addGroup')} className="text-green-600 text-sm font-semibold hover:underline">+ Add Group</button>{group.id !== 'root' && <button onClick={() => onUpdate('removeGroup')} className="text-red-600 text-sm font-semibold hover:underline">Remove Group</button>}
+                </div>
+            </div>
+        );
+
+        const ActionConfigurator = ({ action, params, onParamChange }) => {
+            if (!action) return null;
+            const renderConfig = () => {
+                switch(action) {
+                    case 'Calculate Flat Rate': return <div><label className="font-medium text-gray-700">Flat Rate Amount (₹)</label><input type="number" value={params.rate || ''} onChange={e => onParamChange('rate', e.target.value)} className="w-full p-2 border rounded-lg mt-1" placeholder="e.g., 3.75" /></div>;
+                    case 'Calculate Slab Rate': return <div><label className="font-medium text-gray-700">Weight Slabs (kg)</label><div className="space-y-2 mt-1">{(params.slabs || [{ from: 0, to: 0.5, rate: 20 }]).map((slab, index) => (<div key={index} className="flex items-center space-x-2"><input type="number" value={slab.from} className="w-1/4 p-2 border rounded-lg" placeholder="From"/><span className="text-gray-500">-</span><input type="number" value={slab.to} className="w-1/4 p-2 border rounded-lg" placeholder="To"/><input type="number" value={slab.rate} className="w-1/3 p-2 border rounded-lg" placeholder="Rate (₹)"/><button className="text-gray-400 hover:text-red-500"><Trash2 size={18} /></button></div>))}<button className="text-blue-600 text-sm mt-2 font-semibold hover:underline">+ Add Slab</button></div></div>;
+                    case 'Apply Discount Percentage': case 'Add Surcharge': case 'Calculate Percentage': return <div className="flex space-x-2"><div className="w-1/2"><label className="font-medium text-gray-700">Percentage (%)</label><input type="number" value={params.percentage || ''} onChange={e => onParamChange('percentage', e.target.value)} className="w-full p-2 border rounded-lg mt-1" placeholder="e.g., 15" /></div><div className="w-1/2"><label className="font-medium text-gray-700">Of Dimension</label><select value={params.dimension || ''} onChange={e => onParamChange('dimension', e.target.value)} className="w-full p-2 border rounded-lg mt-1 bg-white"><option>Select Dimension</option>{mockDimensionsData.filter(d => d.type === 'Number').map(d => <option key={d.name}>{d.name}</option>)}</select></div></div>;
+                    case 'Return Zero Charge': return <p className="text-gray-600 italic">No configuration required for this action.</p>;
+                    default: return null;
+                }
+            };
+            return <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-3 animate-fade-in"><div className="flex items-center font-semibold text-blue-800 mb-2"><Settings size={18} className="mr-2"/>Action Configuration</div>{renderConfig()}</div>;
+        };
+
+        const RuleBuilder = ({ onCancel }) => {
+            const [rules, setRules] = useState([JSON.parse(JSON.stringify(initialRuleState))]);
+            const addRule = () => setRules([...rules, { id: Date.now(), priority: (rules.length + 1) * 10, isFinal: false, conditionGroup: createNewGroup(), actionPipeline: [] }]);
+            const removeRule = (ruleId) => setRules(rules.filter(rule => rule.id !== ruleId));
+            const updateRule = (ruleIndex, field, value) => { const newRules = [...rules]; newRules[ruleIndex][field] = value; setRules(newRules); };
+            const updateActionInPipeline = (ruleIndex, actionIndex, field, value) => { const newRules = [...rules]; newRules[ruleIndex].actionPipeline[actionIndex][field] = value; if (field === 'type') newRules[ruleIndex].actionPipeline[actionIndex].params = {}; setRules(newRules); };
+            const addActionToPipeline = (ruleIndex) => { const newRules = [...rules]; newRules[ruleIndex].actionPipeline.push(createNewAction()); setRules(newRules); };
+            const removeActionFromPipeline = (ruleIndex, actionIndex) => { const newRules = [...rules]; newRules[ruleIndex].actionPipeline.splice(actionIndex, 1); setRules(newRules); };
+            const updateRuleCondition = (ruleIndex, action, payload) => { const newRules = JSON.parse(JSON.stringify(rules)); let currentGroup = newRules[ruleIndex].conditionGroup; if (action === 'operator') currentGroup.operator = payload; if (action === 'addCondition') currentGroup.conditions.push(createNewCondition()); if (action === 'addGroup') currentGroup.groups.push(createNewGroup()); if (action === 'removeCondition') currentGroup.conditions.splice(payload, 1); if (action === 'updateCondition') { currentGroup.conditions[payload.index][payload.field] = payload.value; } setRules(newRules); };
+            
+            return (
+                <div className="bg-white p-8 rounded-lg shadow-lg animate-fade-in">
+                    <div className="flex justify-between items-start mb-6">
+                        <div><h2 className="text-2xl font-bold text-gray-800">Create New Rate Card</h2><p className="text-gray-500">Define the conditions and actions for this rate card.</p></div>
+                        <div className="flex space-x-2"><button onClick={onCancel} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300">Cancel</button><button className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 flex items-center"><Save className="w-5 h-5 mr-2" />Save as Draft</button></div>
+                    </div>
+                    <div className="space-y-4 mb-8 border-b pb-8">
+                        <input type="text" placeholder="Rate Card Name (e.g., Myntra Q4-2025)" className="w-full p-2 border rounded-lg" />
+                        <div className="flex space-x-4"><input type="date" className="w-1/2 p-2 border rounded-lg" /><input type="date" className="w-1/2 p-2 border rounded-lg" /></div>
+                        <textarea placeholder="Description..." className="w-full p-2 border rounded-lg h-20"></textarea>
+                    </div>
+                    <div className="space-y-6">
+                        {rules.map((rule, index) => (
+                            <div key={rule.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center mb-4">
+                                    <GripVertical className="w-5 h-5 text-gray-400 cursor-grab mr-2" /><span className="font-bold text-gray-700">Rule {index + 1}</span>
+                                    <div className="ml-auto flex items-center space-x-4">
+                                        <label className="flex items-center text-sm text-gray-600"><input type="checkbox" checked={rule.isFinal} onChange={e => updateRule(index, 'isFinal', e.target.checked)} className="mr-2 h-4 w-4" /> Stop processing after this rule</label>
+                                        <div className="flex items-center"><label className="text-sm mr-2 text-gray-600">Priority:</label><input type="number" value={rule.priority} onChange={e => updateRule(index, 'priority', e.target.value)} className="w-20 p-1 border rounded-md" /></div>
+                                        <button onClick={() => removeRule(rule.id)} className="text-red-500 hover:text-red-700"><Trash2 className="w-5 h-5" /></button>
+                                    </div>
+                                </div>
+                                <div className="bg-white p-4 rounded-md border"><div className="text-sm font-semibold mb-2 text-gray-600">WHEN</div><ConditionGroup group={rule.conditionGroup} onUpdate={(action, payload) => updateRuleCondition(index, action, payload)} /></div>
+                                <div className="mt-3 bg-white p-4 rounded-md border">
+                                    <div className="text-sm font-semibold mb-2 text-gray-600">THEN</div>
+                                    <div className="space-y-3">
+                                        {rule.actionPipeline.map((action, actionIndex) => (
+                                            <div key={action.id} className="p-2 rounded bg-gray-50 border">
+                                                <div className="flex items-center">
+                                                    <p className="text-xs font-bold text-gray-500 mr-2">{actionIndex + 1}</p>
+                                                    <select value={action.type} onChange={e => updateActionInPipeline(index, actionIndex, 'type', e.target.value)} className="p-2 border rounded-lg bg-white w-full">
+                                                        <option value="">Select Action</option>{mockActions.map(a => <option key={a} value={a}>{a}</option>)}
+                                                    </select>
+                                                    <button onClick={() => removeActionFromPipeline(index, actionIndex)} className="ml-2 text-gray-400 hover:text-red-500"><Trash2 size={18} /></button>
+                                                </div>
+                                                <ActionConfigurator action={action.type} params={action.params} onParamChange={(param, value) => { const newParams = {...action.params, [param]: value}; updateActionInPipeline(index, actionIndex, 'params', newParams); }} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button onClick={() => addActionToPipeline(index)} className="text-blue-600 text-sm mt-3 font-semibold hover:underline">+ Add Action</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={addRule} className="mt-6 w-full border-2 border-dashed border-gray-300 text-gray-500 py-2 rounded-lg hover:bg-gray-100 hover:border-gray-400 transition-colors">+ Add New Rule</button>
+                </div>
+            );
+        };
+
+        // --- Main App ---
+        function App() {
+          const [activeView, setActiveView] = useState('rate_cards');
+          
+          const renderContent = () => {
+            switch(activeView) {
+              case 'rules':
+              case 'create_rule':
+                return <RuleBuilder onCancel={() => setActiveView('rate_cards')} />;
+              case 'dimensions':
+                return <DimensionsView />;
+              case 'audits':
+                return <AuditLogsView />;
+              case 'simulations':
+                return <SimulationsView />;
+              case 'rate_cards':
+              default:
+                return <RateCardsView onCreate={() => setActiveView('create_rule')} onEdit={() => setActiveView('create_rule')} />;
+            }
+          };
+
+          return (
+            <div className="flex h-screen bg-gray-100">
+              <Sidebar activeView={activeView} setActiveView={setActiveView} />
+              <main className="flex-1 p-8 overflow-y-auto">
+                {renderContent()}
+              </main>
+            </div>
+          );
+        }
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+
+    </script>
+</body>
+</html>
